@@ -1,0 +1,17 @@
+apiVersion: "v1"
+kind: "Pod"
+metadata:
+  labels:
+    nib: "hello-nib"
+  name: "pod-hello-nib"
+  namespace: "default"
+spec:
+  containers:
+  - command:
+    - "https://demo.fr.git"
+    - ""
+    env:
+    - name: "MAVEN_BUID_CMD"
+      value: "mvn package -DSkipTests"
+    image: "nelvadas/native-image-builder:1.0.1"
+    name: "builder"

@@ -1,0 +1,25 @@
+apiVersion: demos.graalvm.oracle.com/v1alpha1
+kind: NativeImageBuildConfig
+metadata:
+  name: hello-nib
+  labels:
+    app: graal-demos
+spec:
+  source:
+    gitUri: "https://github.com/nelvadas/graalvm-helloworld-nativeimage.git"
+    gitRef: "main"
+    contextDir: "."
+    mainClass: com.oracle.demo.graalvm.Hello
+  destination:
+    imageRepository: docker.io/nelvadas/hello-graalvm-nativeimage
+    imageTag: '1.0.0'
+    baseImage: alpine
+    deployment: hello
+    pushPullSecret: dockerhubTokenSecret
+  options:
+    debug: true
+    mvnBuildCommand: 'mvn package -DSkipTests'
+    nativeImageBuildOptions:
+      - '-H:+ReportExceptionStackTraces'
+      - '-H:+ReportUnsupportedElementsAtRuntime'
+      - '-H:+AddAllCharsets'
