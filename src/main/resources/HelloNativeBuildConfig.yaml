@@ -9,9 +9,9 @@ spec:
     gitUri: "https://github.com/nelvadas/graalvm-helloworld-nativeimage.git"
     gitRef: "main"
     contextDir: "."
-    mainClass: com.oracle.demo.graalvm.Hello
+    mainClass: com.oracle.graalvm.demos.hellonative.App
   destination:
-    imageRepository: docker.io/nelvadas/hello-graalvm-nativeimage
+    imageRepository: docker.io/nelvadas/graalvm-helloworld-nativeimage
     imageTag: '1.0.0'
     baseImage: alpine
     deployment: hello

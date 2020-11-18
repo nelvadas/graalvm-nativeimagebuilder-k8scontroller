@@ -36,11 +36,19 @@ echo DEBUG=$DEBUG
 
 # Build the Java application
 echo "Building JAR file ... "
-$MAVEN_BUID_CMD
+if [ -z "$MAVEN_BUID_CMD" ]
+then
+      mvn clean package
+else
+      $MAVEN_BUID_CMD
+fi
 
-exit 0
 
 # Build the native binary .
 
+$GRAALVM_HOME/bin/native-image -cp target/*.jar --verbose $NATIVE_IMAGE_BUID_OPTS $MAIN_CLASS app
 
 # Build the result application Docker image
+
+# Return
+exit 0

@@ -35,6 +35,11 @@ public class NativeImageBuildConfigController  {
     public static final String APP_BUILDER_IMAGE = "app.builder.image";
     public static final String COM_ORACLE_GRAALVM_NATIVEIMAGEBUILDCONFIG = "com.oracle.graalvm.nativeimagebuildconfig";
     public static final String ENV_MAVEN_BUID_CMD = "MAVEN_BUID_CMD";
+    private static final String ENV_MAIN_CLASS = "MAIN_CLASS";
+    private static final String ENV_NATIVE_IMAGE_BUID_OPTS = "NATIVE_IMAGE_BUID_OPTS";
+    private static final String ENV_DEBUG = "DEBUG";
+
+
     public static final String LABEL_BUILD_CONFIG = "buildConfig";
     public static Logger logger = Logger.getLogger(NativeImageBuildConfigController.class.getName());
 
@@ -160,7 +165,7 @@ public class NativeImageBuildConfigController  {
                         String namespace = newNibc.getMetadata().getNamespace();
                         //Load the nibc object
                         NativeImageBuildConfig nibcObj = nibCrdClient.inNamespace(namespace).withName(ownerBuildConfigName).get();
-                        if(nibcObj.getStatus()!=null){ // avoid overlaps with first builder pod creation
+                        if(nibcObj !=null && nibcObj.getStatus()!=null){ // avoid overlaps with first builder pod creation
                             addToQueue(nibcObj);
                         }
 
@@ -266,9 +271,12 @@ public class NativeImageBuildConfigController  {
         // Get Source
         SourceSpec source = nibc.getSpec().getSource();
 
-        //builder container environment variable
+        //builder container environment variables
         List<EnvVar> builderEnv= new ArrayList<EnvVar>();
+        builderEnv.add(new EnvVar(ENV_DEBUG,nibc.getSpec().getOptions().isDebug()+"",null));
         builderEnv.add(new EnvVar(ENV_MAVEN_BUID_CMD,nibc.getSpec().getOptions().getMvnBuildCommand(),null));
+        builderEnv.add(new EnvVar(ENV_MAIN_CLASS,nibc.getSpec().getSource().getMainClass(),null));
+        builderEnv.add(new EnvVar(ENV_NATIVE_IMAGE_BUID_OPTS, String.join(" ", nibc.getSpec().getOptions().getNativeImageBuildOptions()),null));
 
 
         //Create a owner reference for the builder pod
@@ -295,7 +303,7 @@ public class NativeImageBuildConfigController  {
                 .withImage(builderImage)
                 .withEnv(builderEnv)
                 .withCommand("/native-image-build.sh")
-                .withArgs(source.getGitUri(), source.getGitRef(), source.getContextDir(), null)
+                .withArgs(source.getGitUri(), source.getGitRef(), source.getContextDir(),null, source.getMainClass())
                 .endContainer()
                 .endSpec()
                 .build();
