@@ -7,7 +7,14 @@ metadata:
   name: nibc-cm
 data:
   application.properties: |
-    app.builder.image=nelvadas/native-image-builder:1.0.0
-  Dockerfile: |
-    FROM alpine
-    CMD ["./app"]
+    app.builder.image=nelvadas/native-image-builder:1.0.0-ol8
+  Dockerfile.builder.native: |
+    FROM scratch
+    WORKDIR /application
+
+    # Copy the binary built in the 1st stage
+    COPY target/app  runner
+
+    ENTRYPOINT ["./runner"]
+    # Expose 8080 for Web APPs
+    EXPOSE 8080

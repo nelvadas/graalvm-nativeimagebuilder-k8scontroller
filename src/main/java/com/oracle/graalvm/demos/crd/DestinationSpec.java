@@ -7,7 +7,7 @@ import io.fabric8.kubernetes.api.model.KubernetesResource;
 @JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class DestinationSpec implements KubernetesResource {
 
-
+    private String imageRegistry="docker.io";
     private String imageRepository;
     private String imageTag;
     private String baseImage;
@@ -61,11 +61,20 @@ public class DestinationSpec implements KubernetesResource {
     @Override
     public String toString() {
         return "DestinationSpec{" +
+                "imageRegistry='" + imageRegistry + '\'' +
                 "imageRepository='" + imageRepository + '\'' +
                 ", imageTag='" + imageTag + '\'' +
                 ", baseImage='" + baseImage + '\'' +
                 ", pushSecret='" + pushPullSecret + '\'' +
                 ", deployment='" + deployment + '\'' +
                 '}';
+    }
+
+    public String getImageRegistry() {
+        return imageRegistry;
+    }
+
+    public void setImageRegistry(String imageRegistry) {
+        this.imageRegistry = imageRegistry;
     }
 }

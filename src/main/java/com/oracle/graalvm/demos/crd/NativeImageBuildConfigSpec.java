@@ -21,6 +21,9 @@ public class NativeImageBuildConfigSpec implements KubernetesResource {
 
 
     private SourceSpec source;
+
+
+
     private DestinationSpec destination;
     private OptionSpec options;
 
@@ -43,6 +46,8 @@ public class NativeImageBuildConfigSpec implements KubernetesResource {
     public void setSource(SourceSpec source) {
         this.source = source;
     }
+
+    public DestinationSpec getDestination() { return destination; }
 
     public void setDestination(DestinationSpec destination) {
         this.destination = destination;

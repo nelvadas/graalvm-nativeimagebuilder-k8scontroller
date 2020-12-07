@@ -21,6 +21,7 @@ import org.jboss.arquillian.core.api.annotation.ApplicationScoped;
 import org.jboss.arquillian.core.api.annotation.Inject;
 import org.yaml.snakeyaml.Yaml;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -32,16 +33,18 @@ import java.util.logging.Logger;
 
 
 public class NativeImageBuildConfigController  {
+    public static Logger logger = Logger.getLogger(NativeImageBuildConfigController.class.getName());
+
     public static final String APP_BUILDER_IMAGE = "app.builder.image";
     public static final String COM_ORACLE_GRAALVM_NATIVEIMAGEBUILDCONFIG = "com.oracle.graalvm.nativeimagebuildconfig";
     public static final String ENV_MAVEN_BUID_CMD = "MAVEN_BUID_CMD";
-    private static final String ENV_MAIN_CLASS = "MAIN_CLASS";
-    private static final String ENV_NATIVE_IMAGE_BUID_OPTS = "NATIVE_IMAGE_BUID_OPTS";
-    private static final String ENV_DEBUG = "DEBUG";
-
+    public static final String ENV_MAIN_CLASS = "MAIN_CLASS";
+    public static final String ENV_NATIVE_IMAGE_BUID_OPTS = "NATIVE_IMAGE_BUID_OPTS";
+    public static final String ENV_DEBUG = "DEBUG";
+    public static final String ENV_IMAGE_REPO = "IMAGE_REPO";
+    public static final String ENV_IMAGE_TAG = "IMAGE_TAG";
 
     public static final String LABEL_BUILD_CONFIG = "buildConfig";
-    public static Logger logger = Logger.getLogger(NativeImageBuildConfigController.class.getName());
 
     // CRD informer
     private final SharedIndexInformer<NativeImageBuildConfig> nibcInformer;
@@ -124,7 +127,14 @@ public class NativeImageBuildConfigController  {
 
             @Override
             public void onUpdate(NativeImageBuildConfig oldNibc, NativeImageBuildConfig newNibc) {
-                //logger.info("New NativeImageBuildConfig updated "+newNibc);
+                String ownerBuildConfigName = newNibc.getMetadata().getName();
+                String namespace = newNibc.getMetadata().getNamespace();
+                if(oldNibc.getMetadata().getResourceVersion() != newNibc.getMetadata().getResourceVersion()){
+                    logger.warning("NativeImageBuildConfig updated :"+ownerBuildConfigName);
+
+                }
+
+
             }
 
             @Override
@@ -168,6 +178,7 @@ public class NativeImageBuildConfigController  {
                         if(nibcObj !=null && nibcObj.getStatus()!=null){ // avoid overlaps with first builder pod creation
                             addToQueue(nibcObj);
                         }
+
 
                     }
 
@@ -234,7 +245,8 @@ public class NativeImageBuildConfigController  {
                     logger.info("already runnig pod - "+lastBuilderPod.getMetadata().getName());
                     status.setStatus(lastBuilderPod.getStatus().getPhase().toString());
                     logger.info("Builder "+ nativeImageBuildConfigName+ "status changed to "+status.getStatus());
-                    // Delete existing pod ?
+                    // Delete existing pod ? YES by default
+
                 }
 
 
@@ -270,6 +282,8 @@ public class NativeImageBuildConfigController  {
 
         // Get Source
         SourceSpec source = nibc.getSpec().getSource();
+        DestinationSpec destination = nibc.getSpec().getDestination();
+
 
         //builder container environment variables
         List<EnvVar> builderEnv= new ArrayList<EnvVar>();
@@ -277,6 +291,8 @@ public class NativeImageBuildConfigController  {
         builderEnv.add(new EnvVar(ENV_MAVEN_BUID_CMD,nibc.getSpec().getOptions().getMvnBuildCommand(),null));
         builderEnv.add(new EnvVar(ENV_MAIN_CLASS,nibc.getSpec().getSource().getMainClass(),null));
         builderEnv.add(new EnvVar(ENV_NATIVE_IMAGE_BUID_OPTS, String.join(" ", nibc.getSpec().getOptions().getNativeImageBuildOptions()),null));
+        builderEnv.add(new EnvVar(ENV_IMAGE_REPO, destination.getImageRepository(),null));
+        builderEnv.add(new EnvVar(ENV_IMAGE_TAG, destination.getImageTag(),null));
 
 
         //Create a owner reference for the builder pod
@@ -286,7 +302,35 @@ public class NativeImageBuildConfigController  {
         owner.setName(nativeImageBuildConfigName);
         owner.setUid(nibc.getMetadata().getUid());
 
+        //Security Context for pod ( privilege to mount the docker socket)
+        SecurityContext securityContext =  new SecurityContext();
+        securityContext.setPrivileged(true);
+        securityContext.setRunAsUser(0l);
+
+
+        // image push pull secrets
+        String secretName = destination.getPushPullSecret();
+        String dockerUsername="";
+        String dockerPassword="";
+        String dockerRegistry=destination.getImageRegistry();
+        String dockerConfigJson="";
+        if( secretName !=null){
+            Secret secret = client.secrets().inNamespace(namespace).withName(secretName).get();
+            if(secret !=null){
+
+                Map<String, String> data = secret.getData();
+                logger.info(String.format("====> Docker Config %s \n",data.toString()));
+                 dockerConfigJson = data.getOrDefault(".dockerconfigjson", "");
+            }
+            else{
+                logger.warning(String.format("No secret with name %s  found in namespace %s ",secretName,namespace));
+            }
+        }
+
+
         //create new builder pod
+
+
         Pod builderPod = new PodBuilder()
                 .withNewMetadata()
                     .withName(builderPodName)
@@ -303,8 +347,18 @@ public class NativeImageBuildConfigController  {
                 .withImage(builderImage)
                 .withEnv(builderEnv)
                 .withCommand("/native-image-build.sh")
-                .withArgs(source.getGitUri(), source.getGitRef(), source.getContextDir(),null, source.getMainClass())
+                .withArgs(source.getGitUri(), source.getGitRef(), source.getContextDir(),"", source.getMainClass(),dockerConfigJson,dockerRegistry,destination.getBaseImage(),"")
+                //          $1=Source, $2=ref ,$3=contextDir, $4=gitcreds, not yet used, $5=mainclass, $6=dockerconfigfilecontent; $7=registryurl, $8 baseimage,$9- other
+                .addNewVolumeMount()
+                    .withName("podman-local-repo")
+                    .withMountPath("/var/lib/containers")
+                .endVolumeMount()
+                .withSecurityContext(securityContext)
                 .endContainer()
+                .addNewVolume()
+                    .withName("podman-local-repo")
+                    .withNewHostPath().withPath("/var/lib/containers").endHostPath()
+                .endVolume()
                 .endSpec()
                 .build();
 

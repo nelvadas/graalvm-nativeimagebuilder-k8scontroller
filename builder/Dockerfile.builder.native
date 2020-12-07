@@ -1,0 +1,14 @@
+ARG BASE_IMAGE_APP=ubuntu:18.04
+FROM $BASE_IMAGE_APP
+
+WORKDIR /
+
+# Copy the binary built in the 1st stage
+COPY app  /application
+RUN chmod 755 /application
+
+#Start the native app
+ENTRYPOINT ["/application"]
+
+# Expose 8080 for Web APPs
+EXPOSE 8080
