@@ -1,6 +1,5 @@
 # GraalVM NativeImage Builder Kubernetes Controller
-
-Kubernetes Controller that automatically build GraalVM NativeImage apps from github public sources.
+Kubernetes Controller that automatically build GraalVM NativeImage apps from github public sources to Docker Images.
 
 ## Native Image BuildConfig
 The purpose of the controller is to be able to schedule native image builds for input resources. 
@@ -218,7 +217,7 @@ This image can be customized in various ways:
 
 ### Controller  ConfigMap 
 The controller will first check for the first configMap in the deployment namespace with `com.oracle.graalvm.nativeimagebuildconfig` label set to `true 
-```
+```yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -300,19 +299,19 @@ spec:
 
 ```
 
-```
+```bash
 kubectl apply -f k8s/HelloNativeBuildConfig.yaml
 ```
 
 The CRD is created
-```
+```bash
  $kubectl get ni
 NAME        AGE   COUNTER   BUILDERPOD               STATUS    SOURCE                                                           TARGET                                    TAG
 hello-nib   18s   1         hello-nib-builderpod-0   Running   https://github.com/nelvadas/graalvm-helloworld-nativeimage.git   nelvadas/graalvm-helloworld-nativeimage   1.0.0-demo3
 ``` 
 
 The associated builder pod checks out the source and build the final docker image 
-```
+```logs
  $kubeclt logs -f hello-nib-builderpod-0
 ...
 ...
