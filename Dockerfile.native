@@ -22,8 +22,8 @@ FROM scratch
 WORKDIR /helidon
 
 # Copy the binary built in the 1st stage
-COPY --from=build /helidon/target/helidon-quickstart-se .
+COPY --from=build /helidon/target/graalvm-nativeimagebuilder-k8scontroller .
 
-ENTRYPOINT ["./helidon-quickstart-se"]
+ENTRYPOINT ["./graalvm-nativeimagebuilder-k8scontroller"]
 
 EXPOSE 8080

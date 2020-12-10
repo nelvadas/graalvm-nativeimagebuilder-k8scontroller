@@ -1,0 +1,20 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: graalvm-nativeimagebuilder-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: graalvm-nativeimagebuilder-controller
+  template:
+    metadata:
+      labels:
+        app: graalvm-nativeimagebuilder-controller
+        version: v1
+    spec:
+      containers:
+      - name: controller
+        image: nelvadas/graalvm-nativeimagebuilder-k8scontroller:1.0.0
+        imagePullPolicy: IfNotPresent
+---

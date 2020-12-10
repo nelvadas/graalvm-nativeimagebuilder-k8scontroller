@@ -22,9 +22,9 @@ FROM openjdk:11-jre-slim
 WORKDIR /helidon
 
 # Copy the binary built in the 1st stage
-COPY --from=build /helidon/target/java-k8s-controller.jar ./
+COPY --from=build /helidon/target/graalvm-nativeimagebuilder-k8scontroller.jar ./
 COPY --from=build /helidon/target/libs ./libs
 
-CMD ["java", "-jar", "java-k8s-controller.jar"]
+CMD ["java", "-jar", "graalvm-nativeimagebuilder-k8scontroller.jar"]
 
 EXPOSE 8080

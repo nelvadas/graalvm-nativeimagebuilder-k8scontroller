@@ -13,7 +13,7 @@ spec:
   destination:
     imageRegistry: docker.io
     imageRepository: nelvadas/graalvm-helloworld-nativeimage
-    imageTag: '1.0.2'
+    imageTag: '1.0.0-demo3'
     baseImage: ubuntu:18.04
     deployment: hello
     pushPullSecret: registrycreds
